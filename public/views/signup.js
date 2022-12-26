@@ -14,7 +14,7 @@ document.getElementById('signupform').onsubmit = async (e) => {
         }
     } catch (error) {
         console.log(error);
-        if(error.response.status === 400){
+        if(error.response.status === 403){
             alert('User already exists. Please Login.');
         }
     }

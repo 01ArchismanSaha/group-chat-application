@@ -21,6 +21,9 @@ document.getElementById('loginform').onsubmit = async (e) => {
         if(error.response.status === 401) {
             alert('Password is incorrect!');
         }
+        if(error.response.status === 404) {
+            alert('user is not registered');
+        }
     }
     
 };

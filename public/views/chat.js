@@ -74,7 +74,7 @@ async function fetchMessagesAndShowToUser(groupId, intervalId) {
                 currentMsgs.push(messages[i]);
             }
         }
-        console.log('msgs to show:', currentMsgs);
+        // console.log('msgs to show:', currentMsgs);
         localStorage.setItem('messages', JSON.stringify(messages));
         showChatToUser(currentMsgs);
     } catch (error) {
@@ -84,11 +84,11 @@ async function fetchMessagesAndShowToUser(groupId, intervalId) {
 
 function showChatToUser(messages) {
     try {
-        const chatBody = document.getElementById('chat-body');
-        chatBody.innerHTML = '';
+        const chatul = document.getElementById('chat-ul');
+        chatul.innerHTML = '';
         messages.forEach((message) => {
             // chatBody.innerHTML += message.from+': '+ message.message + `<br>`;
-            chatBody.innerHTML += `
+            chatul.innerHTML += `
                 <p>
                     ${message.from}: ${message.message}
                 </p>
@@ -113,7 +113,7 @@ async function fetchGroupsAndShowToUser() {
                 'Authorization': token
             }
         });
-        console.log('get groups response:', res);
+        // console.log('get groups response:', res);
         if(res.status === 200) {
             const groups = res.data.groups;
             showGrouopsToUser(groups);
@@ -132,7 +132,10 @@ function showGrouopsToUser(groups) {
             // console.log(group);
             // console.log(group.name);
             chatList.innerHTML += `
+                <div>
                 <p id="${group.id}">${group.name}</p>
+                <button>+</button>
+                </div>
                 <hr>
             `;
         });
@@ -149,18 +152,27 @@ document.getElementById('chat-list').onclick = async (e) => {
         if(previousIntervalId) {
             clearInterval(previousIntervalId);
         }
-        console.log(e.target.nodeName);
-        if(e.target.nodeName === 'P') {
-            // e.target.setAttribute('class', 'active');
-            const groupId = e.target.id;
+    
+        if(e.target.nodeName === 'BUTTON'){
+            // console.log(e.target.parentElement.children[0].id);
+            const groupId = e.target.parentElement.children[0].id;
+            sessionStorage.setItem('addToGroup', groupId);
+            window.location.href = `newMember.html`;
+        }else {
+            const chatNameDiv = document.getElementById('open-chat');
+            let groupId;
+            if(e.target.nodeName === 'P'){
+                chatNameDiv.innerHTML = `<p><b>${e.target.innerText}</b></p>`;
+                groupId = e.target.id;
+            }else {
+                chatNameDiv.innerHTML = `<p><b>${e.target.children[0].innerText}</b></p>`;
+                groupId = e.target.children[0].id;
+            }
             await new Promise((resolve, reject) => {
-
                 localStorage.setItem('groupId', groupId);
-                // localStorage.removeItem('messages');
                 resolve();
             });
             const intervalId = setInterval(() => {
-                
                 fetchMessagesAndShowToUser(groupId, intervalId);
             }, 1000);
         }
@@ -168,3 +180,149 @@ document.getElementById('chat-list').onclick = async (e) => {
         console.log(error);
     }
 }
+
+document.getElementById('open-chat').onclick = (e) => {
+    e.preventDefault();
+    try {
+        document.getElementById('members-list').classList.add('active');
+        // console.log('this is getting called');
+        const groupId = localStorage.getItem('groupId');
+        fetchMembersAndShowToUser(groupId);
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+async function fetchMembersAndShowToUser(groupId) {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`http://localhost:3000/chat/getMembers/?groupId=${groupId}`, {
+            headers: {
+                'Authorization': token
+            }
+        });
+        console.log('get members response:', res);
+        if(res.status === 200) {
+            const members = res.data.members;
+            showMembersToUser(members);
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+function showMembersToUser(members) {
+    try {
+        const memberBody = document.getElementById('members-ul');
+        memberBody.innerHTML = '';
+        members.forEach(member => {
+            if(member.isAdmin) {
+                memberBody.innerHTML += `<li>
+                    ${member.dataValues.name} <b>-Admin</b>
+                    <button class="rmadminbtn" id="rmadminbtn-${member.dataValues.id}">Remove Admin Permission</button>
+                    <button class="rmbtn" id="rmbtn-${member.dataValues.id}">Remove User</button>
+                </li>`;
+            } else {
+                memberBody.innerHTML += `<li>
+                    ${member.dataValues.name}
+                    <button class="adminbtn" id="mkbtn-${member.dataValues.id}">Make Admin</button>
+                    <button class="rmbtn" id="rmbtn-${member.dataValues.id}">Remove User</button>
+                </li>`;
+            }
+        }); 
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+document.getElementById('close-members-btn').onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('members-list').classList.remove('active');
+}
+
+document.getElementById('members-ul').onclick = (e) => {
+    e.preventDefault();
+    try {
+        if(e.target.className == 'adminbtn'){
+            makeAdmin(e.target.id);
+        }
+        else if(e.target.className == 'rmbtn') {
+            removeMember(e.target.id);
+        } else if(e.target.className == 'rmadminbtn') {
+            removeAdminPermission(e.target.id);
+        }
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+async function makeAdmin(idString) {
+    try {
+        const userId = idString.split('-')[1];
+        const token = localStorage.getItem('token');
+        const groupId = localStorage.getItem('groupId');
+        const res = await axios.put('http://localhost:3000/admin/makeAdmin', {userId: userId, groupId: groupId}, {
+            headers: {
+                'Authorization': token
+            }
+        }); 
+        if(res.status === 200) {
+            console.log('setting admin response:', res);
+            confirm('user set as admin');
+            fetchMembersAndShowToUser(groupId);
+        }
+    } catch (error) {
+        console.log(error);
+        if(error.response.status === 403) {
+            alert(`You don't have required permissions.`);
+        }
+    }
+};
+
+async function removeMember(idString) {
+    try {
+        const userId = idString.split('-')[1];
+        const token = localStorage.getItem('token');
+        const groupId = localStorage.getItem('groupId');
+        let config = { 
+            headers: {
+                Authorization: token
+            },
+            data: {userId: userId, groupId: groupId}
+        }
+        const res = await axios.delete('http://localhost:3000/admin/removeFromGroup', config); 
+        if(res.status === 200) {
+            console.log('removing user response:', res);
+            confirm('user removed from group');
+            fetchMembersAndShowToUser(groupId);
+        }
+    } catch (error) {
+        console.log(error);
+        if(error.response.status === 403) {
+            alert(`You don't have required permissions.`);
+        }
+    }
+};
+
+async function removeAdminPermission(idString) {
+    try {
+        const userId = idString.split('-')[1];
+        const token = localStorage.getItem('token');
+        const groupId = localStorage.getItem('groupId');
+        const res = await axios.put('http://localhost:3000/admin/removeAdmin', {userId: userId, groupId: groupId}, {
+            headers: {
+                'Authorization': token
+            }
+        }); 
+        if(res.status === 200) {
+            console.log('remove admin response:', res);
+            confirm('user removed from admin');
+            fetchMembersAndShowToUser(groupId);
+        }
+    } catch (error) {
+        console.log(error);
+        if(error.response.status === 403) {
+            alert(`You don't have required permissions.`);
+        }
+    }
+};

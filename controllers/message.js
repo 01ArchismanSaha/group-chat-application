@@ -35,8 +35,8 @@ exports.fetchNewMessages = async (req, res, next) => {
     try {
         const lastMsgId = +req.query.lastMsgId;
         const groupId = +req.query.groupId;
-        console.log('msg id in backend:', lastMsgId);
-        console.log('grp id in backend to fetch msg:', groupId);
+        // console.log('msg id in backend:', lastMsgId);
+        // console.log('grp id in backend to fetch msg:', groupId);
         // const group = await Group.findByPk(groupId);
         // const messages = await Message.findAll({where: {[Op.and]:[{id:  {[Op.gt]: lastMsgId}}, {groupId: groupId}]}});
         const messages = await Message.findAll({where: {id:  {[Op.gt]: lastMsgId}}});

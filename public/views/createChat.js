@@ -1,9 +1,11 @@
+const baseUrl = `http://54.209.222.23:4000`;
+
 document.getElementById('new-chat-form').onsubmit = async (e) => {
     e.preventDefault();
     try {
         const token = localStorage.getItem('token');
         const participantEmail = document.getElementById('chat-mate-email').value;
-        const res = await axios.post('http://localhost:3000/chat/addParticipant', {
+        const res = await axios.post(`${baseUrl}/chat/addParticipant`, {
             email: participantEmail
         },
         {

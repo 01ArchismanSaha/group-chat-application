@@ -1,11 +1,15 @@
-document.getElementById('loginform').onsubmit = async (e) => {
+const forgotBtn = document.getElementById('fgt-btn');
+const loginForm = document.getElementById('loginform');
+const baseUrl = `http://54.209.222.23:4000`;
+
+loginForm.onsubmit = async (e) => {
     e.preventDefault();
 
     try {
         const email = document.getElementById('emailField').value;
         const password = document.getElementById('passwordField').value;
 
-        let res = await axios.post('http://localhost:3000/user/login', {email, password});
+        let res = await axios.post(`${baseUrl}/user/login`, {email, password});
         console.log(res);
         if(res.status === 200) {
             email.value = '';
@@ -27,3 +31,7 @@ document.getElementById('loginform').onsubmit = async (e) => {
     }
     
 };
+
+forgotBtn.onclick = async (e) => {
+    window.location.href = 'forgot.html';
+}
